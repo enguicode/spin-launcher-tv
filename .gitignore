@@ -1,0 +1,14 @@
+local.properties
+.gradle/
+build/
+app/build/
+.idea/
+*.iml
+.env
+.env.*
+home.json
+sensors.json
+*.keystore
+*.jks
+*.apk
+*.idsig

@@ -1,0 +1,312 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Mockup D at 1920x1080 / density 320: every size here is the mockup's pixels halved. -->
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="#000000"
+    android:clipChildren="false">
+
+    <ImageView
+        android:id="@+id/bg_back"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:importantForAccessibility="no"
+        android:scaleType="centerCrop" />
+
+    <ImageView
+        android:id="@+id/bg_front"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:importantForAccessibility="no"
+        android:scaleType="centerCrop" />
+
+    <LinearLayout
+        android:id="@+id/top"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="top|end"
+        android:layout_marginTop="22dp"
+        android:layout_marginEnd="38dp"
+        android:clipChildren="false"
+        android:clipToPadding="false"
+        android:orientation="horizontal">
+
+        <ImageButton
+            android:id="@+id/bt"
+            style="@style/TopButton"
+            android:contentDescription="@string/bluetooth"
+            android:src="@drawable/ic_bt" />
+
+        <ImageButton
+            android:id="@+id/mirror"
+            style="@style/TopButton"
+            android:contentDescription="@string/mirror"
+            android:src="@drawable/ic_mirror" />
+
+        <ImageButton
+            android:id="@+id/screensaver"
+            style="@style/TopButton"
+            android:contentDescription="@string/screensaver"
+            android:src="@drawable/ic_screensaver" />
+
+        <ImageButton
+            android:id="@+id/reorder"
+            style="@style/TopButton"
+            android:contentDescription="@string/reorder"
+            android:src="@drawable/ic_reorder" />
+
+        <ImageButton
+            android:id="@+id/settings"
+            style="@style/TopButton"
+            android:contentDescription="@string/settings"
+            android:src="@drawable/ic_gear" />
+    </LinearLayout>
+
+    <LinearLayout
+        android:id="@+id/center"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="top|start"
+        android:layout_marginStart="48dp"
+        android:layout_marginTop="52dp"
+        android:gravity="start"
+        android:orientation="vertical">
+
+        <TextView
+            android:id="@+id/clock"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:fontFamily="@font/inter_200"
+            android:fontFeatureSettings="tnum"
+            android:includeFontPadding="false"
+            android:letterSpacing="-0.03"
+            android:textColor="#FFFFFF"
+            android:textSize="130sp" />
+
+        <TextView
+            android:id="@+id/date"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="-8dp"
+            android:alpha="0.8"
+            android:gravity="center"
+            android:fontFamily="@font/inter_300"
+            android:letterSpacing="0.24"
+            android:textAllCaps="true"
+            android:textColor="#FFFFFF"
+            android:textSize="16sp" />
+
+        <!-- Today: place, temperature and sky. -->
+        <LinearLayout
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center_horizontal"
+            android:layout_marginTop="12dp"
+            android:gravity="center_vertical"
+            android:orientation="horizontal">
+
+            <ImageView
+                android:id="@+id/weather_icon"
+                android:layout_width="17dp"
+                android:layout_height="17dp"
+                android:importantForAccessibility="no"
+                android:visibility="gone" />
+
+            <TextView
+                android:id="@+id/weather"
+                style="@style/InfoText"
+                android:layout_marginStart="7dp"
+                android:visibility="gone" />
+        </LinearLayout>
+
+    </LinearLayout>
+
+    <!-- Hairline between the clock block and the rooms; only shown when there are rooms. -->
+    <View
+        android:id="@+id/split"
+        android:layout_width="1dp"
+        android:layout_height="185dp"
+        android:layout_gravity="top|start"
+        android:layout_marginStart="480dp"
+        android:layout_marginTop="117dp"
+        android:alpha="0.22"
+        android:background="#FFFFFF"
+        android:importantForAccessibility="no" />
+
+    <!-- Information cards, one at a time: the rooms and the next 7 days. Up from the dock selects it. -->
+    <LinearLayout
+        android:id="@+id/panel"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="top|end"
+        android:layout_marginTop="72dp"
+        android:layout_marginEnd="24dp"
+        android:background="@drawable/panel_background"
+        android:defaultFocusHighlightEnabled="false"
+        android:focusable="true"
+        android:gravity="center_horizontal"
+        android:orientation="vertical"
+        android:padding="10dp"
+        android:visibility="gone">
+
+        <FrameLayout
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content">
+
+            <GridLayout
+                android:id="@+id/house"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_gravity="center"
+                android:columnCount="3"
+                android:visibility="gone" />
+
+            <LinearLayout
+                android:id="@+id/forecast"
+                android:layout_width="375dp"
+                android:layout_height="wrap_content"
+                android:layout_gravity="center"
+                android:orientation="horizontal"
+                android:visibility="gone" />
+        </FrameLayout>
+
+        <LinearLayout
+            android:id="@+id/panel_dots"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="14dp"
+            android:orientation="horizontal"
+            android:visibility="gone">
+
+            <FrameLayout
+                android:id="@+id/marker_house"
+                android:layout_width="36dp"
+                android:layout_height="3dp"
+                android:background="@drawable/panel_marker">
+
+                <View
+                    android:id="@+id/fill_house"
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:background="#FFFFFF"
+                    android:importantForAccessibility="no"
+                    android:scaleX="0"
+                    android:transformPivotX="0dp" />
+            </FrameLayout>
+
+            <FrameLayout
+                android:id="@+id/marker_forecast"
+                android:layout_width="36dp"
+                android:layout_height="3dp"
+                android:layout_marginStart="8dp"
+                android:background="@drawable/panel_marker">
+
+                <View
+                    android:id="@+id/fill_forecast"
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:background="#FFFFFF"
+                    android:importantForAccessibility="no"
+                    android:scaleX="0"
+                    android:transformPivotX="0dp" />
+            </FrameLayout>
+        </LinearLayout>
+    </LinearLayout>
+
+    <!-- Dims the home behind the wheel during the hold-to-spin minigame. -->
+    <View
+        android:id="@+id/lucky_scrim"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:alpha="0"
+        android:background="@drawable/lucky_spotlight"
+        android:importantForAccessibility="no" />
+
+    <com.enguicode.spinlaunchertv.BeamsView
+        android:id="@+id/lucky_beams"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:alpha="0"
+        android:importantForAccessibility="no" />
+
+    <!-- The apps with double odds, across the top while the wheel spins; filled in code. -->
+    <LinearLayout
+        android:id="@+id/lucky_top"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="top|center_horizontal"
+        android:layout_marginTop="36dp"
+        android:alpha="0"
+        android:orientation="horizontal" />
+
+    <!-- The apps that order themselves, in the clock's place while reordering; filled in code. -->
+    <LinearLayout
+        android:id="@+id/reorder_top"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="top|center_horizontal"
+        android:layout_marginTop="104dp"
+        android:alpha="0"
+        android:gravity="center_horizontal"
+        android:orientation="vertical">
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="18dp"
+            android:alpha="0.72"
+            android:fontFamily="@font/inter_500"
+            android:text="@string/reorder_top"
+            android:textColor="#FFFFFF"
+            android:textSize="13sp" />
+
+        <LinearLayout
+            android:id="@+id/reorder_cards"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal" />
+    </LinearLayout>
+
+    <com.enguicode.spinlaunchertv.DockScroll
+        android:id="@+id/dock_scroll"
+        android:layout_width="match_parent"
+        android:layout_height="110dp"
+        android:layout_gravity="bottom"
+        android:layout_marginBottom="36dp"
+        android:clipChildren="false"
+        android:clipToPadding="false"
+        android:fadingEdgeLength="120dp"
+        android:requiresFadingEdge="horizontal"
+        android:scrollbars="none">
+
+        <LinearLayout
+            android:id="@+id/dock"
+            android:layout_width="wrap_content"
+            android:layout_height="match_parent"
+            android:clipChildren="false"
+            android:clipToPadding="false"
+            android:gravity="center_vertical"
+            android:orientation="horizontal" />
+    </com.enguicode.spinlaunchertv.DockScroll>
+
+    <TextView
+        android:id="@+id/app_name"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_gravity="bottom"
+        android:layout_marginBottom="20dp"
+        android:alpha="0.9"
+        android:fontFamily="@font/inter_500"
+        android:gravity="center"
+        android:letterSpacing="0.12"
+        android:textAllCaps="true"
+        android:textColor="#FFFFFF"
+        android:textSize="13sp" />
+
+    <com.enguicode.spinlaunchertv.ConfettiView
+        android:id="@+id/confetti"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:focusable="false"
+        android:importantForAccessibility="no" />
+</FrameLayout>

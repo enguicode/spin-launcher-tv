@@ -1,0 +1,14 @@
+<resources>
+    <string name="app_name">Spin Launcher TV</string>
+    <string name="key_service">Botón Apps del mando</string>
+    <string name="bluetooth">Auriculares Bluetooth</string>
+    <string name="mirror">Duplicar pantalla del móvil</string>
+    <string name="screensaver">Salvapantallas</string>
+    <string name="settings">Ajustes</string>
+    <string name="reorder">Ordenar</string>
+    <string name="reorder_done">Hecho</string>
+    <string name="reorder_hint">Pulsa OK en una app para moverla</string>
+    <string name="reorder_move">Muévela con las flechas y pulsa OK</string>
+    <string name="lucky_top">Top usadas</string>
+    <string name="reorder_top">Top usadas · aparecen al principio de la lista</string>
+</resources>
