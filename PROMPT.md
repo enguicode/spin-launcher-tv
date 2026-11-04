@@ -16,7 +16,7 @@ Quiero instalar **Spin Launcher TV** (`https://github.com/enguicode/spin-launche
 - Si algo falla, deshaz lo último antes de seguir.
 
 **Pregúntame**
-- Qué apps no quiero que gane la ruleta, para añadirlas a `NEVER_WINS` (ver «Excluir apps de la ruleta» en el README).
+- Qué apps no quiero que gane la ruleta, para el `settings.json`.
 - Mi localidad y, si uso Home Assistant, la URL y las entidades de temperatura de cada habitación.
 
 **Cuidado con**

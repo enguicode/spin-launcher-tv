@@ -65,4 +65,19 @@ final class Wheel {
     static float neighbourBoost(float d, float boost) {
         return 1f + boost * Math.max(0f, 1f - Math.abs(Math.abs(d) - 1f));
     }
+
+    /**
+     * The draw's tickets, as card indexes: one per app that may win, plus {@code extra} more for each of those in
+     * the top. Empty when no app may win, so the caller falls back to any card.
+     */
+    static List<Integer> tickets(List<String> pkgs, Set<String> neverWins, List<String> top, int extra) {
+        List<Integer> out = new ArrayList<>();
+        for (int i = 0; i < pkgs.size(); i++) {
+            String p = pkgs.get(i);
+            if (neverWins.contains(p)) continue;
+            int n = 1 + (top.contains(p) ? extra : 0);
+            for (int k = 0; k < n; k++) out.add(i);
+        }
+        return out;
+    }
 }

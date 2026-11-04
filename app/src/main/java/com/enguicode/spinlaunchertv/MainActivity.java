@@ -22,6 +22,8 @@ import android.graphics.Color;
 import android.graphics.Outline;
 import android.graphics.drawable.Drawable;
 import android.graphics.drawable.GradientDrawable;
+import android.media.AudioAttributes;
+import android.media.SoundPool;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
@@ -82,18 +84,6 @@ public class MainActivity extends Activity {
     private static final Set<String> HIDDEN = new HashSet<>(Arrays.asList(
             "com.enguicode.spinlaunchertv", "com.android.tv.settings", "com.google.android.tv.remote.service",
             "com.xiaomi.mitv.smartshare"));
-    /**
-     * Apps the roulette must never stop on. They still turn with the wheel and can be opened normally; they are
-     * only skipped as winners, and only while at least one other app is eligible (otherwise the draw uses them).
-     * Add the package names of the apps you want excluded, for example tools such as a store, a gallery
-     * or a media player:
-     *   new HashSet<>(Arrays.asList(
-     *       "com.android.vending",   // Play Store
-     *       "org.videolan.vlc",      // VLC
-     *       "com.mitv.gallery"));    // Xiaomi gallery
-     * Find a package name with: adb shell pm list packages | grep name
-     */
-    private static final Set<String> NEVER_WINS = new HashSet<>();
     private static final ComponentName ADD_ACCESSORY =
             new ComponentName("com.android.tv.settings", "com.android.tv.settings.accessories.AddAccessoryActivity");
     /** Xiaomi's Miracast receiver screen: the TV waits there for a Samsung Smart View or Windows mirror. */
@@ -102,7 +92,8 @@ public class MainActivity extends Activity {
     /** SystemUI's exported "start the screensaver now" activity. */
     private static final ComponentName SCREENSAVER =
             new ComponentName("com.android.systemui", "com.android.systemui.Somnambulator");
-    private static final long REFRESH_MS = 10 * 60 * 1000;
+    /** settings.json, read again each time the home comes back. */
+    private LauncherSettings settings = LauncherSettings.DEFAULT;
 
     private final Handler main = new Handler(Looper.getMainLooper());
     private final ExecutorService io = Executors.newSingleThreadExecutor();
@@ -115,7 +106,6 @@ public class MainActivity extends Activity {
     /** Which card the panel shows: the rooms or the next 7 days. */
     private int card = CARD_HOUSE;
     private static final int CARD_HOUSE = 0, CARD_FORECAST = 1;
-    private static final long CARD_MS = 20_000;
     /** Fills the current card's marker; when it is full the panel turns to the other card. */
     private ValueAnimator cardTimer;
     private ImageButton bt;
@@ -135,13 +125,16 @@ public class MainActivity extends Activity {
     /** Wheel position in tile steps; the focused tile is spun to it, and it keeps growing past the ends. */
     private float wheelPos;
     private ValueAnimator spin;
+    /** The game's sounds: lights on, one tick per card the wheel passes, and the win. */
+    private SoundPool sounds;
+    private int soundStart, soundTick, soundWin;
+    /** The card the last tick sounded for, so each card passing the top ticks once. */
+    private int tickedCard;
     /** The wheel draws its tiles this much larger than their natural size, and lifts its arc by WHEEL_LIFT. */
     private static final float WHEEL_SCALE = 1.15f;
     private static final float WHEEL_LIFT = 20;
     /** How much larger than the rest the wheel draws the focused tile's two neighbours. */
     private static final float NEIGHBOUR_BOOST = 0.18f;
-    /** Holding Left/Right this long on the wheel lets go of it: it coasts and stops on an app by itself. */
-    private static final long LUCKY_HOLD_MS = 3000;
     /** How far the wheel coasts, in seconds' worth of steps at full speed, before the random landing is added. */
     private static final float LUCKY_COAST_S = 3;
     private static final float LUCKY_RAISE = 84, LUCKY_GROW = 1.2f, LUCKY_SWEEP = 200;
@@ -153,12 +146,10 @@ public class MainActivity extends Activity {
     private boolean lucky;
     private long luckyPress = -1;
     private final Random random = new Random();
-    /** The most watched apps lately, read as each spin starts; each gets a second ticket in the draw. */
+    /** The most watched apps lately: they lead the wheel, are listed during the spin and get extra tickets. */
     private volatile List<String> favourites = new ArrayList<>();
-    private static final int FAVOURITES = 5;
     /** The divider's resting opacity, as set in the layout. */
     private static final float SPLIT_ALPHA = 0.22f;
-    private static final long FAVOURITES_WINDOW_MS = 30L * 24 * 60 * 60 * 1000;
     private int period = -1;
     private boolean away;
     private ValueAnimator drift;
@@ -174,7 +165,7 @@ public class MainActivity extends Activity {
         @Override public void onReceive(Context c, Intent i) { updateBluetooth(); }
     };
     private final Runnable refresh = new Runnable() {
-        @Override public void run() { loadWeather(); loadHouse(); main.postDelayed(this, REFRESH_MS); }
+        @Override public void run() { loadWeather(); loadHouse(); main.postDelayed(this, settings.refreshMs); }
     };
 
     @Override
@@ -183,6 +174,11 @@ public class MainActivity extends Activity {
         setContentView(R.layout.activity_main);
         dp = getResources().getDisplayMetrics().density;
         prefs = getSharedPreferences("home", MODE_PRIVATE);
+        sounds = new SoundPool.Builder().setMaxStreams(4).setAudioAttributes(new AudioAttributes.Builder()
+                .setUsage(AudioAttributes.USAGE_ASSISTANCE_SONIFICATION).setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION).build()).build();
+        soundStart = sounds.load(this, R.raw.lucky_start, 1);
+        soundTick = sounds.load(this, R.raw.lucky_tick, 1);
+        soundWin = sounds.load(this, R.raw.lucky_win, 1);
         bgBack = findViewById(R.id.bg_back);
         bgFront = findViewById(R.id.bg_front);
         clock = findViewById(R.id.clock);
@@ -229,6 +225,7 @@ public class MainActivity extends Activity {
     @Override
     protected void onResume() {
         super.onResume();
+        settings = readSettings();
         loadFavourites();
         IntentFilter time = new IntentFilter(Intent.ACTION_TIME_TICK);
         time.addAction(Intent.ACTION_TIME_CHANGED);
@@ -257,6 +254,7 @@ public class MainActivity extends Activity {
         // Leaving (Home, a remote app key, the screensaver) ends the game where it is.
         if (lucky) spin.cancel();
         ((ConfettiView) findViewById(R.id.confetti)).stop();
+        sounds.autoPause();
     }
 
     @Override
@@ -264,6 +262,7 @@ public class MainActivity extends Activity {
         unregisterReceiver(packages);
         unregisterReceiver(bluetooth);
         io.shutdownNow();
+        sounds.release();
         super.onDestroy();
     }
 
@@ -454,7 +453,7 @@ public class MainActivity extends Activity {
         if (!right && !left) return false;
         if (e.getAction() != KeyEvent.ACTION_DOWN) return true;
         int i = dock.indexOfChild(v), n = dock.getChildCount();
-        if (!editing && n > 0 && e.getEventTime() - e.getDownTime() >= LUCKY_HOLD_MS) {
+        if (!editing && n > 0 && e.getEventTime() - e.getDownTime() >= settings.holdMs) {
             startLucky(right ? 1 : -1, e);
             return true;
         }
@@ -533,6 +532,8 @@ public class MainActivity extends Activity {
         holdCardTimer();
         luckyPress = press.getDownTime();
         showLuckyStage(true, 0);
+        play(soundStart, 0.8f, 1);
+        tickedCard = Math.floorMod(Math.round(wheelPos), Math.max(1, apps()));
         loadFavourites();
         if (spin != null) spin.cancel();
         // Measured, not assumed: the key repeat rate and how well the box keeps up both vary.
@@ -546,6 +547,7 @@ public class MainActivity extends Activity {
             float t = (float) a.getAnimatedValue();
             wheelPos = Wheel.wrap(wheelPos + direction * speed * LUCKY_RUN_MS / 1000f * (t - last[0]), apps());
             last[0] = t;
+            tickIfPassed();
             layoutLucky();
         });
         after(spin, () -> coast(direction, speed));
@@ -567,6 +569,7 @@ public class MainActivity extends Activity {
             float slow = now / speed;
             beams.aim(LUCKY_SWEEP * slow * (float) Math.sin(a.getCurrentPlayTime() * 0.0021), 0.55f + 0.45f * (1 - slow * slow));
             appName.setAlpha(0.9f * Math.max(0f, Math.min(1f, (NAME_HIDDEN_SPEED - now) / (NAME_HIDDEN_SPEED - NAME_SHOWN_SPEED))));
+            tickIfPassed();
             layoutLucky();
         });
         after(spin, () -> { wheelPos = Math.floorMod(to, apps); settle(); });
@@ -574,13 +577,9 @@ public class MainActivity extends Activity {
     }
 
     private int pickWinner(int apps) {
-        List<Integer> tickets = new ArrayList<>();
-        for (int i = 0; i < apps; i++) {
-            Object pkg = dock.getChildAt(i).getTag();
-            if (NEVER_WINS.contains(pkg)) continue;
-            tickets.add(i);
-            if (favourites.contains(pkg)) tickets.add(i);
-        }
+        List<String> pkgs = new ArrayList<>();
+        for (int i = 0; i < apps; i++) pkgs.add((String) dock.getChildAt(i).getTag());
+        List<Integer> tickets = Wheel.tickets(pkgs, settings.neverWins, favourites, settings.favouriteTickets - 1);
         return tickets.isEmpty() ? random.nextInt(apps) : tickets.get(random.nextInt(tickets.size()));
     }
 
@@ -589,15 +588,15 @@ public class MainActivity extends Activity {
         Set<String> candidates = new HashSet<>();
         for (int i = 0; i < apps(); i++) {
             Object pkg = dock.getChildAt(i).getTag();
-            if (!NEVER_WINS.contains(pkg)) candidates.add((String) pkg);
+            if (!settings.neverTop.contains(pkg)) candidates.add((String) pkg);
         }
         io.execute(() -> {
             long now = System.currentTimeMillis();
             Map<String, UsageStats> stats = ((UsageStatsManager) getSystemService(USAGE_STATS_SERVICE))
-                    .queryAndAggregateUsageStats(now - FAVOURITES_WINDOW_MS, now);
+                    .queryAndAggregateUsageStats(now - settings.favouritesWindowMs, now);
             Map<String, Long> time = new HashMap<>();
             for (Map.Entry<String, UsageStats> e : stats.entrySet()) time.put(e.getKey(), e.getValue().getTotalTimeInForeground());
-            favourites = Wheel.top(time, candidates, FAVOURITES);
+            favourites = Wheel.top(time, candidates, settings.favourites);
             Log.i("Spin", "wheel favourites: " + favourites);
             main.post(() -> {
                 showFavourites();
@@ -614,7 +613,7 @@ public class MainActivity extends Activity {
         buildDock();
     }
 
-    /** Lists the double-odds apps in a line across the top, coming down one after another. */
+    /** Lists the top of most used apps in a line across the top, coming down one after another. */
     private void showFavourites() {
         LinearLayout list = findViewById(R.id.lucky_top);
         list.removeAllViews();
@@ -625,7 +624,9 @@ public class MainActivity extends Activity {
             View tile = dock.findViewWithTag(pkg);
             if (tile == null) continue;
             rank++;
-            TextView line = favouriteLine(rank + "   " + tile.getContentDescription(), 19, 1f, R.font.inter_300);
+            // An app that may not win is still among the most used, so it stays in the list, dimmed.
+            TextView line = favouriteLine(rank + "   " + tile.getContentDescription(), 19,
+                    settings.neverWins.contains(pkg) ? 0.4f : 1f, R.font.inter_300);
             line.setPadding(Math.round(30 * dp), 0, 0, 0);
             list.addView(line);
         }
@@ -655,6 +656,7 @@ public class MainActivity extends Activity {
     private void settle() {
         ((BeamsView) findViewById(R.id.lucky_beams)).aim(0, 1f);
         throwConfetti();
+        play(soundWin, 1f, 2);
         showLuckyStage(false, LUCKY_HOLD_WINNER_MS);
         long total = LUCKY_HOLD_WINNER_MS + LUCKY_REOPEN_MS;
         spin = ValueAnimator.ofFloat(0f, total);
@@ -670,6 +672,20 @@ public class MainActivity extends Activity {
         });
         after(spin, this::finishLucky);
         spin.start();
+    }
+
+    /** Ticks once for each card that reaches the top (wrapped, so going round the ring adds no extra tick). */
+    private void tickIfPassed() {
+        int card = Math.floorMod(Math.round(wheelPos), Math.max(1, apps()));
+        if (card == tickedCard) return;
+        tickedCard = card;
+        play(soundTick, 0.6f, 0);
+    }
+
+    /** Roulette sounds ride the system-sounds stream, like the navigation click, and obey its on/off switch. */
+    private void play(int sound, float gain, int priority) {
+        if (Settings.System.getInt(getContentResolver(), Settings.System.SOUND_EFFECTS_ENABLED, 1) == 0) return;
+        sounds.play(sound, gain, gain, priority, 0, 1f);
     }
 
     /** A burst from the winner, then two firecrackers going off at its sides. */
@@ -1004,6 +1020,15 @@ public class MainActivity extends Activity {
         }
     }
 
+    private LauncherSettings readSettings() {
+        try {
+            File f = new File(getFilesDir(), ConfigProvider.SETTINGS);
+            return new LauncherSettings(new JSONObject(new String(Files.readAllBytes(f.toPath()), StandardCharsets.UTF_8)));
+        } catch (Exception e) {
+            return LauncherSettings.DEFAULT;
+        }
+    }
+
     private JSONArray rooms() {
         try {
             File f = new File(getFilesDir(), ConfigProvider.ROOMS);
@@ -1069,7 +1094,7 @@ public class MainActivity extends Activity {
         findViewById(card == CARD_HOUSE ? R.id.fill_forecast : R.id.fill_house).setScaleX(0f);
         if (house.getChildCount() == 0 || forecast.getChildCount() == 0) return;
         cardTimer = ValueAnimator.ofFloat(0f, 1f);
-        cardTimer.setDuration(CARD_MS);
+        cardTimer.setDuration(settings.cardMs);
         cardTimer.setInterpolator(new LinearInterpolator());
         cardTimer.addUpdateListener(a -> fill.setScaleX((float) a.getAnimatedValue()));
         cardTimer.addListener(new AnimatorListenerAdapter() {

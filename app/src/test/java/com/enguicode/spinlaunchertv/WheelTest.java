@@ -103,4 +103,13 @@ public class WheelTest {
     public void farTilesFadeOut() {
         assertEquals(0f, Wheel.place(12, 1000, 126, 24, 0)[3], 1e-6);
     }
+
+    @Test
+    public void ticketsSkipNeverWinsAndWeightTheTop() {
+        java.util.List<String> pkgs = Arrays.asList("netflix", "vlc", "youtube");
+        java.util.List<Integer> t = Wheel.tickets(pkgs, new HashSet<>(Arrays.asList("vlc")), Arrays.asList("vlc", "netflix"), 2);
+        // Netflix: 1 + 2 extra; VLC never (even in the top); YouTube: 1.
+        assertEquals(Arrays.asList(0, 0, 0, 2), t);
+        assertTrue(Wheel.tickets(Arrays.asList("vlc"), new HashSet<>(Arrays.asList("vlc")), Arrays.asList(), 1).isEmpty());
+    }
 }

@@ -16,7 +16,7 @@ Un launcher para Android TV con una ruleta para decidir qué aplicación abrir.
 
 ## La ruleta
 
-¿Otra noche pasando de una aplicación a otra sin decidirte? Mantén pulsado izquierda o derecha en la rueda de aplicaciones: el launcher da paso a las luces, la rueda gira y se detiene en una app, con confeti para celebrarlo.
+¿Otra noche pasando de una aplicación a otra sin decidirte? Mantén pulsado izquierda o derecha en la rueda de aplicaciones: el launcher da paso a las luces, la rueda gira con un clic por cada app y se detiene en una, con confeti y petardos para celebrarlo. Los sonidos van por el canal de sonidos del sistema: siguen su volumen y callan si los desactivas.
 
 La aplicación queda seleccionada. **No se abre sola**: pulsa OK para entrar o sigue navegando.
 
@@ -67,15 +67,22 @@ Limitaciones conocidas:
 
 ## Valores que puedes ajustar
 
-Están como constantes al principio de `MainActivity.java`; tras cambiarlas hay que volver a compilar e instalar.
+Van en un archivo `settings.json` que se escribe por ADB, sin volver a compilar. Todas las claves son opcionales: lo que falte o se salga de los límites usa el valor por defecto o el límite. Se lee cada vez que vuelves al inicio.
 
-| Constante | Valor | Qué controla |
-| --- | --- | --- |
-| `LUCKY_HOLD_MS` | 3 s | Cuánto hay que mantener ◀ o ▶ para lanzar la ruleta |
-| `FAVOURITES` | 5 | Cuántas apps reciben doble probabilidad |
-| `FAVOURITES_WINDOW_MS` | 30 días | Ventana de uso que se mira |
-| `REFRESH_MS` | 10 min | Cada cuánto se actualizan el tiempo y los sensores |
-| `CARD_MS` | 20 s | Cada cuánto cambia el panel entre Casa y Semana |
+| Clave | Por defecto | Límites | Qué controla |
+| --- | --- | --- | --- |
+| `neverWins` | `[]` | — | Apps que la ruleta nunca elige ([ver abajo](#excluir-apps-de-la-ruleta)) |
+| `neverTop` | `[]` | — | Apps que nunca entran entre las más usadas, así que nunca encabezan la rueda |
+| `favourites` | 5 | 0–5 | Cuántas apps más usadas encabezan la rueda y tienen ventaja en la ruleta (0 lo quita) |
+| `favouritesDays` | 30 | 1–365 | Días de uso que se miran |
+| `favouriteTickets` | 2 | 1–10 | Papeletas de cada app más usada en la ruleta (1 = sin ventaja) |
+| `holdSeconds` | 3 | 1–10 | Cuánto hay que mantener ◀ o ▶ para lanzar la ruleta |
+| `cardSeconds` | 20 | 5–300 | Cada cuánto cambia el panel entre Casa y Semana |
+| `refreshMinutes` | 10 | 1–120 | Cada cuánto se actualizan el tiempo y los sensores |
+
+```bash
+adb shell content write --uri content://com.enguicode.spinlaunchertv.config/settings.json < settings.json
+```
 
 ## Compilar e instalar
 
@@ -152,14 +159,13 @@ Para ordenar, selecciona el icono de flechas de la barra superior, pulsa OK sobr
 
 ## Excluir apps de la ruleta
 
-Por defecto, **todas las apps pueden salir elegidas**. Si hay alguna que no quieres que gane el sorteo (una tienda, un explorador de archivos, un reproductor…), añade su nombre de paquete a `NEVER_WINS` en `app/src/main/java/com/enguicode/spinlaunchertv/MainActivity.java`:
+Por defecto, **todas las apps pueden salir elegidas**. Si hay alguna que no quieres que gane el sorteo (una tienda, un explorador de archivos, un reproductor…), pon su nombre de paquete en `neverWins` dentro de [`settings.json`](#valores-que-puedes-ajustar):
 
-```java
-private static final Set<String> NEVER_WINS = new HashSet<>(Arrays.asList(
-        "com.android.vending",        // Play Store
-        "org.videolan.vlc",           // VLC
-        "com.mitv.gallery"));         // Galería de Xiaomi
+```json
+{"neverWins": ["com.android.vending", "org.videolan.vlc", "com.mitv.gallery"]}
 ```
+
+En el ejemplo: Play Store, VLC y la galería de Xiaomi.
 
 Para saber el nombre de paquete de una app:
 
@@ -171,8 +177,9 @@ Cómo funciona la exclusión:
 
 - Las apps excluidas **siguen girando en la rueda y se abren con normalidad**; solo se descartan como ganadoras.
 - Si **todas** las apps instaladas están excluidas, el sorteo usa las que haya en lugar de fallar.
-- El permiso de estadísticas de uso solo duplica la probabilidad de apps elegibles; una excluida nunca recibe esa ventaja.
-- Tras cambiar la lista hay que volver a compilar e instalar.
+- El permiso de estadísticas de uso solo da ventaja a apps elegibles; una excluida nunca la recibe. Si está entre las más usadas, sale atenuada en «Top usadas».
+- Para que tampoco encabece la rueda, ponla también en `neverTop`.
+- Tras cambiar la lista, vuelve a escribir `settings.json`; no hace falta reinstalar.
 
 ## Tiempo y Home Assistant
 
@@ -197,7 +204,7 @@ adb shell content write --uri content://com.enguicode.spinlaunchertv.config/home
 - **Token:** uno de larga duración, creado en tu perfil de Home Assistant. Se guarda en los archivos privados de la app y no forma parte del código; no subas nunca tu `home.json` real a un repositorio. Mejor con HTTPS: con HTTP el token viaja sin cifrar por tu red.
 - **Sensores:** de temperatura, con estado numérico; la app muestra grados y no convierte unidades. Iconos: `sofa`, `pot`, `desk`, `bed`, `star`, `bath`, `shower`, `balcony` y `washer`; uno desconocido muestra una casa. Una IA puede generarte la lista a partir de los nombres de tus entidades.
 - **Cambiar solo las habitaciones:** escribe un `sensors.json` con `{"sensors": [...]}` por la misma vía (`…config/sensors.json`); sustituye a la lista de `home.json`, y `{"sensors": []}` las quita. Para quitar el token, vuelve a escribir `home.json` sin él.
-- **Quién puede escribirlos:** la app solo acepta `home.json` y `sensors.json`, solo para escribir y solo desde ADB o el sistema (permiso `WRITE_SECURE_SETTINGS`). Las demás apps no pueden leerlos.
+- **Quién puede escribirlos:** la app solo acepta `home.json`, `sensors.json` y `settings.json`, solo para escribir y solo desde ADB o el sistema (permiso `WRITE_SECURE_SETTINGS`). Las demás apps no pueden leerlos.
 
 La configuración se vuelve a leer al volver al inicio. Los datos se consultan directamente en tu servidor; el launcher no incluye analítica ni publicidad.
 
