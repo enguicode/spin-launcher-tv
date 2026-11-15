@@ -84,8 +84,8 @@ public class MainActivity extends Activity {
     private static final Set<String> HIDDEN = new HashSet<>(Arrays.asList(
             "com.enguicode.spinlaunchertv", "com.android.tv.settings", "com.google.android.tv.remote.service",
             "com.xiaomi.mitv.smartshare"));
-    private static final ComponentName ADD_ACCESSORY =
-            new ComponentName("com.android.tv.settings", "com.android.tv.settings.accessories.AddAccessoryActivity");
+    /** Android TV's «Mandos y accesorios» list (paired devices plus «Vincular accesorio»), shown by its settings slice. */
+    private static final String ACCESSORIES = "content://com.android.tv.settings.accessories.sliceprovider/general";
     /** Xiaomi's Miracast receiver screen: the TV waits there for a Samsung Smart View or Windows mirror. */
     private static final ComponentName MIRACAST =
             new ComponentName("com.xiaomi.mitv.smartshare", "com.xiaomi.mitv.smartshare.wifidisplay.WfdActivity");
@@ -204,7 +204,7 @@ public class MainActivity extends Activity {
         bt = findViewById(R.id.bt);
 
         setupPanel();
-        setupTopButton(bt, () -> open(new Intent().setComponent(ADD_ACCESSORY)));
+        setupTopButton(bt, () -> open(new Intent("android.settings.SLICE_SETTINGS").putExtra("slice_uri", ACCESSORIES)));
         setupTopButton(findViewById(R.id.mirror), () -> open(new Intent().setComponent(MIRACAST)));
         setupTopButton(findViewById(R.id.screensaver), () -> open(new Intent().setComponent(SCREENSAVER)));
         reorder = findViewById(R.id.reorder);
@@ -928,6 +928,12 @@ public class MainActivity extends Activity {
             int s = Math.round(34 * dp);
             t.addView(art, new FrameLayout.LayoutParams(s, s, Gravity.CENTER));
         }
+        // A rebuilt dock can be focused before its first layout, when the size is still 0 and the pivot lands on
+        // the top-left corner: the focused tile then grows down over its name. Re-anchor it once the size is known.
+        t.addOnLayoutChangeListener((v, l, tp, r2, b, ol, ot, or, ob) -> {
+            v.setPivotX(v.getWidth() / 2f);
+            v.setPivotY(v.getHeight());
+        });
 
         t.setOnFocusChangeListener((v, has) -> {
             if (has && v != picked) setAppName(label);

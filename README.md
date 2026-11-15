@@ -47,7 +47,7 @@ La aplicación queda seleccionada. **No se abre sola**: pulsa OK para entrar o s
 
 Limitaciones conocidas:
 
-- **Bluetooth y duplicación de pantalla:** los dos accesos de la barra superior abren pantallas del firmware de la Xiaomi probada (`com.xiaomi.mitv.smartshare` para Miracast, y los ajustes de accesorios de Android TV para Bluetooth). En otros modelos pueden no hacer nada; puedes cambiar los componentes en `MainActivity.java` (`MIRACAST` y `ADD_ACCESSORY`).
+- **Bluetooth y duplicación de pantalla:** los dos accesos de la barra superior abren pantallas del firmware de la Xiaomi probada (`com.xiaomi.mitv.smartshare` para Miracast, y «Mandos y accesorios» de Android TV para Bluetooth). En otros modelos pueden no hacer nada; puedes cambiar los componentes en `MainActivity.java` (`MIRACAST` y `ACCESSORIES`).
 - **Salvapantallas:** el botón usa `com.android.systemui/.Somnambulator`, que existe en Android TV estándar pero el fabricante puede retirarlo.
 - **Botón Apps del mando:** se atiende con un servicio de accesibilidad que solo filtra esa tecla. Escucha `KEYCODE_ALL_APPS`; si el botón Apps de tu mando envía otra tecla, no hará nada.
 - **Idioma:** la interfaz, la fecha y el nombre del tiempo están solo en español, y la localidad por defecto es Valencia.
