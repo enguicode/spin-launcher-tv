@@ -449,6 +449,15 @@ public class MainActivity extends Activity {
             if (e.getAction() == KeyEvent.ACTION_DOWN) (editing ? reorder : panel.getVisibility() == View.VISIBLE ? panel : bt).requestFocus();
             return true;
         }
+        // Down jumps to the first tile, where the most used apps sit.
+        if (code == KeyEvent.KEYCODE_DPAD_DOWN && !editing) {
+            View first = dock.getChildAt(0);
+            if (e.getAction() == KeyEvent.ACTION_DOWN && first != null && first != v) {
+                dock.playSoundEffect(SoundEffectConstants.NAVIGATION_DOWN);
+                first.requestFocus();
+            }
+            return true;
+        }
         boolean right = code == KeyEvent.KEYCODE_DPAD_RIGHT, left = code == KeyEvent.KEYCODE_DPAD_LEFT;
         if (!right && !left) return false;
         if (e.getAction() != KeyEvent.ACTION_DOWN) return true;

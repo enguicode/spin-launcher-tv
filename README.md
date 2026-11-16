@@ -152,7 +152,7 @@ adb shell appops set com.enguicode.spinlaunchertv GET_USAGE_STATS allow
 | OK | Abrir la app seleccionada |
 | ▲ | Ir al panel de información o a la barra superior |
 | ◀ / ▶ con el panel seleccionado | Cambiar entre temperaturas y previsión |
-| ▼ | Volver a la rueda |
+| ▼ | Volver a la rueda; en la rueda, saltar a la primera app (la más usada) |
 | Atrás | Salir de la ordenación o devolver el foco a la rueda |
 
 Para ordenar, selecciona el icono de flechas de la barra superior, pulsa OK sobre una app, muévela con ◀ / ▶ y pulsa OK para dejarla. Termina con el icono de verificación. Las apps que encabezan la rueda por uso se muestran aparte durante la ordenación.
